@@ -1,9 +1,11 @@
-/**
- * Vercel deploy entry handler, for serverless deployment, please don't modify this file
- */
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import app from './app.js';
+import type { VercelRequest, VercelResponse } from '@vercel/node'
+import app from './app.js'
 
-export default function handler(req: VercelRequest, res: VercelResponse) {
-  return app(req, res);
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  await new Promise<void>((resolve, reject) => {
+    app(req, res, (err: any) => {
+      if (err) reject(err)
+      else resolve()
+    })
+  })
 }

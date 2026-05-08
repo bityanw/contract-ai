@@ -254,7 +254,16 @@ function getDB(): any {
   }
 
   if (!_sqliteDb) {
-    const Database = require('better-sqlite3')
+    let Database: any = null
+    try {
+      Database = require('better-sqlite3')
+    } catch {
+      if (!_memDb) {
+        _memDb = createSeedData()
+      }
+      return _memDb
+    }
+
     const path = require('path')
     const fs = require('fs')
 

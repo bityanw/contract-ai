@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from 'express'
-import db from '../db.js'
+import getDB from '../db.js'
+const db = getDB()
 
 const router = Router()
 

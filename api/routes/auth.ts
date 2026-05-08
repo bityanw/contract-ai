@@ -1,7 +1,8 @@
 import { Router, type Request, type Response } from 'express'
 import { v4 as uuidv4 } from 'uuid'
 import bcryptjs from 'bcryptjs'
-import db from '../db.js'
+import getDB from '../db.js'
+const db = getDB()
 import { authMiddleware, roleMiddleware, generateToken } from '../middleware/auth.js'
 
 const router = Router()

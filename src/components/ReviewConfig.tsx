@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Settings, ChevronDown, ChevronUp, Play, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Settings, ChevronDown, ChevronUp, Play, Loader2, LogIn } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { DEFAULT_DIMENSIONS } from './ContractInput';
 
@@ -10,6 +11,7 @@ const STRICTNESS_OPTIONS: { value: 'low' | 'medium' | 'high'; label: string }[] 
 ];
 
 export default function ReviewConfig() {
+  const navigate = useNavigate();
   const {
     templates,
     selectedTemplateId,
@@ -18,6 +20,7 @@ export default function ReviewConfig() {
     isReviewing,
     currentContract,
     customPrompt,
+    isAuthenticated,
     setSelectedTemplate,
     setSelectedDimensions,
     toggleDimension,
@@ -44,6 +47,14 @@ export default function ReviewConfig() {
     if (tpl) {
       setSelectedDimensions(tpl.focusDimensions.map((d) => d.id));
     }
+  };
+
+  const handleReviewClick = () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    startReview();
   };
 
   return (
@@ -125,19 +136,26 @@ export default function ReviewConfig() {
       </div>
 
       <button
-        onClick={startReview}
-        disabled={isReviewing || !currentContract.content.trim()}
+        onClick={handleReviewClick}
+        disabled={isAuthenticated ? (isReviewing || !currentContract.content.trim()) : false}
         className="btn-primary w-full"
       >
-        {isReviewing ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            审核中...
-          </>
+        {isAuthenticated ? (
+          isReviewing ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              审核中...
+            </>
+          ) : (
+            <>
+              <Play className="h-4 w-4" />
+              启动审核
+            </>
+          )
         ) : (
           <>
-            <Play className="h-4 w-4" />
-            启动审核
+            <LogIn className="h-4 w-4" />
+            登录后审核
           </>
         )}
       </button>

@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3'
 import { v4 as uuidv4 } from 'uuid'
+import bcryptjs from 'bcryptjs'
 import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
@@ -82,6 +83,18 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_findings_review ON findings(review_id);
   CREATE INDEX IF NOT EXISTS idx_findings_risk ON findings(risk_level);
   CREATE INDEX IF NOT EXISTS idx_dimensions_template ON focus_dimensions(template_id);
+
+  CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    email TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    name TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'user',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 `)
 
 const seedTemplates = [
@@ -324,5 +337,21 @@ const seedData = db.transaction(() => {
 })
 
 seedData()
+
+const seedAdmin = db.transaction(() => {
+  const existingAdmin = db.prepare("SELECT COUNT(*) as count FROM users WHERE email = 'admin@contractai.com'").get() as { count: number }
+  if (existingAdmin.count > 0) return
+
+  const hashedPassword = bcryptjs.hashSync('admin123', 10)
+  db.prepare('INSERT INTO users (id, email, password, name, role) VALUES (?, ?, ?, ?, ?)').run(
+    uuidv4(),
+    'admin@contractai.com',
+    hashedPassword,
+    '系统管理员',
+    'admin'
+  )
+})
+
+seedAdmin()
 
 export default db

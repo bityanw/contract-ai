@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, Edit2, Trash2, X } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, X, Crown } from 'lucide-react';
 import { useAppStore } from '@/store';
 import type { PromptTemplate } from '../../shared/types';
 import { cn } from '@/lib/utils';
@@ -21,12 +21,14 @@ const emptyForm = {
 };
 
 export default function Prompts() {
-  const { templates, fetchTemplates } = useAppStore();
+  const { templates, fetchTemplates, isAuthenticated, user } = useAppStore();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('全部');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+
+  const canEdit = isAuthenticated && user && (user.role === 'pro' || user.role === 'admin');
 
   useEffect(() => {
     fetchTemplates();
@@ -39,12 +41,14 @@ export default function Prompts() {
   });
 
   const openCreate = () => {
+    if (!canEdit) return;
     setEditingId(null);
     setForm({ ...emptyForm, dimensions: [] });
     setModalOpen(true);
   };
 
   const openEdit = (t: PromptTemplate) => {
+    if (!canEdit) return;
     setEditingId(t.id);
     setForm({
       name: t.name,
@@ -97,6 +101,7 @@ export default function Prompts() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!canEdit) return;
     await fetch(`/api/templates/${id}`, { method: 'DELETE' });
     fetchTemplates();
   };
@@ -117,10 +122,16 @@ export default function Prompts() {
           </div>
           <button
             onClick={openCreate}
-            className="flex items-center gap-2 px-4 py-2 bg-[#e2b340] text-[#1a1a2e] rounded-lg text-sm font-medium hover:bg-[#e2b340]/90 transition-colors"
+            disabled={!canEdit}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+              canEdit
+                ? 'bg-[#e2b340] text-[#1a1a2e] hover:bg-[#e2b340]/90'
+                : 'bg-white/5 text-white/30 cursor-not-allowed',
+            )}
           >
-            <Plus className="w-4 h-4" />
-            创建模板
+            {canEdit ? <Plus className="w-4 h-4" /> : <Crown className="w-4 h-4" />}
+            {canEdit ? '创建模板' : '升级专业版解锁'}
           </button>
         </div>
       </div>
@@ -167,10 +178,10 @@ export default function Prompts() {
             <div className="flex items-center gap-2 pt-3 border-t border-white/5">
               <button
                 onClick={() => openEdit(t)}
-                disabled={t.isBuiltin}
+                disabled={t.isBuiltin || !canEdit}
                 className={cn(
                   'flex items-center gap-1 px-3 py-1.5 text-xs rounded transition-colors',
-                  t.isBuiltin
+                  t.isBuiltin || !canEdit
                     ? 'text-white/20 cursor-not-allowed'
                     : 'text-white/60 hover:bg-white/10',
                 )}
@@ -179,10 +190,10 @@ export default function Prompts() {
               </button>
               <button
                 onClick={() => handleDelete(t.id)}
-                disabled={t.isBuiltin}
+                disabled={t.isBuiltin || !canEdit}
                 className={cn(
                   'flex items-center gap-1 px-3 py-1.5 text-xs rounded transition-colors',
-                  t.isBuiltin
+                  t.isBuiltin || !canEdit
                     ? 'text-white/20 cursor-not-allowed'
                     : 'text-red-400/60 hover:bg-red-400/10',
                 )}

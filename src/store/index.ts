@@ -1,6 +1,13 @@
 import { create } from 'zustand';
 import type { Review, PromptTemplate, ReviewRequest } from '../../shared/types';
 
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+}
+
 interface AppState {
   currentContract: { title: string; content: string };
   selectedTemplateId: string | null;
@@ -11,6 +18,9 @@ interface AppState {
   isReviewing: boolean;
   templates: PromptTemplate[];
   reviews: Review[];
+  user: User | null;
+  token: string | null;
+  isAuthenticated: boolean;
 }
 
 interface AppActions {
@@ -25,6 +35,20 @@ interface AppActions {
   fetchReviews: () => Promise<void>;
   fetchReviewById: (id: string) => Promise<void>;
   resetReview: () => void;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, name: string) => Promise<void>;
+  logout: () => void;
+  fetchCurrentUser: () => Promise<void>;
+  upgradeRole: () => Promise<void>;
+}
+
+const savedToken = localStorage.getItem('contractai_token');
+const savedUser = localStorage.getItem('contractai_user');
+let parsedUser: User | null = null;
+try {
+  if (savedUser) parsedUser = JSON.parse(savedUser);
+} catch {
+  parsedUser = null;
 }
 
 export const useAppStore = create<AppState & AppActions>((set, get) => ({
@@ -37,6 +61,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   isReviewing: false,
   templates: [],
   reviews: [],
+  user: parsedUser,
+  token: savedToken,
+  isAuthenticated: !!savedToken,
 
   setContract: (title, text) => {
     set({ currentContract: { title, content: text } });
@@ -70,7 +97,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   },
 
   startReview: async () => {
-    const { currentContract, selectedTemplateId, customPrompt, selectedDimensions, strictness } = get();
+    const { currentContract, selectedTemplateId, customPrompt, selectedDimensions, strictness, token } = get();
 
     set({ isReviewing: true, currentReview: null });
 
@@ -90,10 +117,13 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
       strictness: strictnessMap[strictness] || 'medium',
     };
 
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
     try {
       const res = await fetch('/api/review', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(body),
       });
 
@@ -231,5 +261,86 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
 
   resetReview: () => {
     set({ currentReview: null, isReviewing: false });
+  },
+
+  login: async (email, password) => {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const json = await res.json();
+    if (json.success && json.data) {
+      const { user, token } = json.data;
+      localStorage.setItem('contractai_token', token);
+      localStorage.setItem('contractai_user', JSON.stringify(user));
+      set({ user, token, isAuthenticated: true });
+    } else {
+      throw new Error(json.message || '登录失败');
+    }
+  },
+
+  register: async (email, password, name) => {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, name }),
+    });
+    const json = await res.json();
+    if (json.success && json.data) {
+      const { user, token } = json.data;
+      localStorage.setItem('contractai_token', token);
+      localStorage.setItem('contractai_user', JSON.stringify(user));
+      set({ user, token, isAuthenticated: true });
+    } else {
+      throw new Error(json.message || '注册失败');
+    }
+  },
+
+  logout: () => {
+    localStorage.removeItem('contractai_token');
+    localStorage.removeItem('contractai_user');
+    set({ user: null, token: null, isAuthenticated: false });
+  },
+
+  fetchCurrentUser: async () => {
+    const { token } = get();
+    if (!token) return;
+    try {
+      const res = await fetch('/api/auth/me', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        const user = json.data;
+        localStorage.setItem('contractai_user', JSON.stringify(user));
+        set({ user });
+      } else {
+        get().logout();
+      }
+    } catch {
+      get().logout();
+    }
+  },
+
+  upgradeRole: async () => {
+    const { token } = get();
+    if (!token) return;
+    const res = await fetch('/api/auth/upgrade', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const json = await res.json();
+    if (json.success && json.data) {
+      const { user, token: newToken } = json.data;
+      localStorage.setItem('contractai_token', newToken);
+      localStorage.setItem('contractai_user', JSON.stringify(user));
+      set({ user, token: newToken });
+    } else {
+      throw new Error(json.message || '升级失败');
+    }
   },
 }));

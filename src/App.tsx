@@ -5,6 +5,9 @@ import Prompts from "@/pages/Prompts";
 import Report from "@/pages/Report";
 import History from "@/pages/History";
 import SettingsPage from "@/pages/Settings";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 export default function App() {
   return (
@@ -17,7 +20,9 @@ export default function App() {
             <Route path="/prompts" element={<Prompts />} />
             <Route path="/report/:id" element={<Report />} />
             <Route path="/history" element={<History />} />
-            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
           </Routes>
         </main>
       </div>

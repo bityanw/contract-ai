@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, Link } from "react-router-dom";
-import { FileSearch, BookOpen, BarChart3, Clock, Settings } from "lucide-react";
+import { FileSearch, BookOpen, BarChart3, Clock } from "lucide-react";
+import UserMenu from "@/components/UserMenu";
 
 const navItems = [
   { path: "/", label: "审核工作台", icon: FileSearch },
@@ -65,25 +66,8 @@ export default function Sidebar() {
         })}
       </nav>
 
-      <div className="px-3 pb-3">
-        <Link
-          to="/settings"
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
-            location.pathname === "/settings"
-              ? "bg-brand-400/10 text-brand-400 border-l-2 border-brand-400"
-              : "text-zinc-400 hover:text-zinc-200 hover:bg-navy-800/50"
-          }`}
-        >
-          <Settings size={18} />
-          <span>AI 设置</span>
-          {aiStatus && (
-            <span
-              className={`ml-auto h-2 w-2 rounded-full ${
-                aiStatus.configured ? "bg-emerald-400" : "bg-zinc-600"
-              }`}
-            />
-          )}
-        </Link>
+      <div className="px-3 pb-2">
+        <UserMenu />
       </div>
 
       <div className="px-6 py-4 border-t border-navy-700/40">

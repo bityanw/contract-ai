@@ -1,12 +1,15 @@
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store';
 import ContractInput from '@/components/ContractInput';
 import ReviewConfig from '@/components/ReviewConfig';
 import ReviewResults from '@/components/ReviewResults';
 
 export default function Workbench() {
+  const navigate = useNavigate();
   const fetchTemplates = useAppStore((s) => s.fetchTemplates);
   const currentReview = useAppStore((s) => s.currentReview);
+  const isAuthenticated = useAppStore((s) => s.isAuthenticated);
 
   useEffect(() => {
     fetchTemplates();
@@ -28,6 +31,18 @@ export default function Workbench() {
             <ReviewConfig />
           </div>
         </div>
+
+        {!isAuthenticated && (
+          <div className="mt-6 rounded-xl border border-[#e2b340]/20 bg-[#e2b340]/5 p-4 flex items-center justify-between">
+            <p className="text-sm text-[#e2b340]/80">登录后可使用完整审核功能，保存审核历史</p>
+            <button
+              onClick={() => navigate('/login')}
+              className="px-4 py-2 text-sm bg-[#e2b340] text-[#1a1a2e] rounded-lg font-medium hover:bg-[#e2b340]/90 transition-colors"
+            >
+              立即登录
+            </button>
+          </div>
+        )}
 
         {currentReview && (
           <div className="mt-8">
